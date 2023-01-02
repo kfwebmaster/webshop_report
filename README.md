@@ -35,7 +35,7 @@ _installing Putty will also install plink and pageant_
 syntax for report.pl: 
 
 ```
-report.pl [-month=M -year=Y -prefix=xx]
+.\report.pl [-month=M -year=Y -prefix=xx]
 ```
 
 all switches are optional. 
@@ -45,7 +45,7 @@ by default, the script generates report for the last month using prefix `wp_`
 the command below generates report for august 2021 for site 2 in a multisite WP
 
 ```
-report.pl -month=8 -year=2021 -prefix=wp_2_
+.\report.pl -month=8 -year=2021 -prefix=wp_2_
 ```
 
 ## other
