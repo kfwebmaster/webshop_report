@@ -21,8 +21,9 @@ _installing Putty will also install plink and pageant_
 
 ### preparation (first time)
 
-1. copy `.env-sample` to `.env` and add credentials for the database
-2. generate an RSA key and add it to `.ssh\authorized_keys` on the server
+1. duplicate `.tunnel-sample.bat` to `tunnel.bat`, and add server connection
+2. duplicate `.env-sample` to `.env`, and add database credentials
+3. generate an RSA key and add it to `.ssh\authorized_keys` on the server
 
 ### generate report (every time)
 
