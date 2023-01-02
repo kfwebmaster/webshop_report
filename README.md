@@ -4,7 +4,7 @@
 
 this script generates a sales report from the webshop for a specified month.
 
-the report is saved as an excel file.
+the report is saved in .xlsx format
 
 ### prerequisites
 
@@ -14,22 +14,21 @@ the report is saved as an excel file.
     - DBD::MariaDB
     - Excel::Grinder
     - Cwd
-    - Dotenv
 - plink
 - pageant
 
-plink and pageant are installed with Putty
+_installing Putty will also install plink and pageant_
 
 ### preparation (first time)
 
-1. rename `.env-sample` to .env and add credentials for the database
+1. copy `.env-sample` to `.env` and add credentials for the database
 2. generate an RSA key and add it to `.ssh\authorized_keys` on the server
 
 ### generate report (every time)
 
-1. run pageant and add key
-2. run tunnel.bat to set up an ssh tunnel to the server
-3. run report.pl to generate report
+1. run pageant and add private RSA key
+2. run `tunnel.bat` to set up an ssh tunnel to the server
+3. run `report.pl` to generate report
 
 ## syntax and examples
 
@@ -43,10 +42,12 @@ all switches are optional.
 
 by default, the script generates report for the last month using prefix `wp_` 
 
-the command below generates report for august 2021 for site 2 in multisite WP
+the command below generates report for august 2021 for site 2 in a multisite WP
 
 ```
 report.pl -month=8 -year=2021 -prefix=wp_2_
 ```
 
+## other
 
+the Dotenv module on cpan is not used because it does not work on windows
