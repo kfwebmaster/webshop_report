@@ -1,16 +1,24 @@
 #! perl -s -w
 
 use strict; 
-use Cwd qw( cwd );
-use DBI;
-use Excel::Grinder;
+use v5.10;
 
 use feature qw( refaliasing declared_refs );
 no warnings qw( experimental::refaliasing experimental::declared_refs );
 
+#load modules
+use Cwd qw( cwd );
+use DBI;
+use Excel::Grinder;
+
 #custom Dotenv module, since the one on cpan doesn't work on windows
 our %dotenv;
 require qw( .\Dotenv.pm );
+
+#worksheet name => file containing sql query
+my %queries = (
+    'Overview' => 'overview.sql',
+);
 
 #optional switches
 our ($month, $year, $prefix);
@@ -34,14 +42,7 @@ BEGIN {
     $month == 0 and $month = 12 and $year--;
 }
 
-#load sql query
-our $base_sql = load_file_content('base.sql');
-
 our @data;
-my %queries = (
-    'Overview' => 'overview.sql',
-);
-
 #run queries and add data
 foreach my $key (sort keys %queries){
     my $file = $queries{$key};
@@ -66,10 +67,22 @@ my $file = $xlsx->write_excel(
 );
 
 
+sub load_file_content {
+    my ($file) = @_;
+    my $content;
+    open my $fh, '<', $file
+        or die "Could not open file $file: $!";
+    while(my $line = (<$fh>)){
+        $content.= $line;
+    }
+    close $fh;
+    return $content;
+}
+
 sub prepare_query {
+    state $base_sql = load_file_content('base.sql');
     my ($query) = @_;
 
-    #make sql query
     my $sql = "$base_sql\n$query";
 
     #insert month, year, and prefix into query
@@ -100,29 +113,13 @@ sub run_query {
     #add field names as the first row
     push @data, $fields;
 
+    #add values from each row
     while(my $row = $sth->fetchrow_hashref()){
-        my @vals = ();
-
-        #using $fields to ensure the values come in the same order for each row
-        push @vals, $_ foreach map { $row->{$_} } $fields->@*;
-
-        push @data, \@vals;
+        push @data, [ map { $row->{$_} } $fields->@* ];
     }
 
     $sth->finish;
     $dbh->disconnect;
 
     return @data;
-}
-
-sub load_file_content {
-    my ($file) = @_;
-    my $content;
-    open my $fh, '<', $file
-        or die "Could not open file $file: $!";
-    while(my $line = (<$fh>)){
-        $content.= $line;
-    }
-    close $fh;
-    return $content;
 }
