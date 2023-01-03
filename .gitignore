@@ -1,4 +1,4 @@
-reports/
+output/
 queries/
 .env
 tunnel.bat

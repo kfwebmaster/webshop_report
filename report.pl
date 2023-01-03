@@ -37,21 +37,24 @@ BEGIN {
     $month == 0 and $month = 12 and $year--;
 }
 
-#load sql files from /sql
+#load list of query files
 my @queries = <queries/*.sql>;
-0 < @queries or die "no files found in queries/";
+0 < @queries or die "No files found in queries/. ";
 
-our @data;
 #run queries and add data
+our @data;
 foreach my $file (@queries){
     my $query = load_file_content($file);
     my $sql = prepare_query($query);
-
     push @data, [ run_query($sql) ];
 }
 
-#generate xlsx file from data
-my $path = cwd . "/reports/"; #current working directory
+#generate sheet names from query filenames
+#queries/sales.sql -> Sales
+my @sheets = map { s|^queries/(\w+)\.sql$|\u$1|r } @queries;
+
+#prepare filename for report
+my $path = cwd . "/output/";
 my @now = localtime;
 my $timestamp = sprintf("%d" . ("%02d" x 5),
     $now[5]+1900,   #year (starts at 1900)
@@ -63,16 +66,16 @@ my $timestamp = sprintf("%d" . ("%02d" x 5),
 );
 my $filename = "$prefix-$month-$year-$timestamp.xlsx";
 
+#generate xlsx file from data
 my $xlsx = Excel::Grinder->new($path);
 my $file = $xlsx->write_excel(
-    'filename' => $filename,
-    'headings_in_data' => 1,
-    'worksheet_names' => [ map { s|^queries/(\w+)\.sql$|\u$1|r } @queries ],
-    'the_data' => [
-        @data
-    ],
+    'filename'          => $filename,
+    'headings_in_data'  => 1,
+    'worksheet_names'   => [ @sheets ],
+    'the_data'          => [ @data ],
 );
 
+####### subrouties #######
 
 sub load_file_content {
     my ($file) = @_;
