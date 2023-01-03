@@ -1,65 +1,94 @@
-## description
+## Description
 
-this script generates a sales report for a specified month from a woocommerce webshop.
+This script generates a sales report for a specified month from a WooCommerce webshop.
 
-the report is saved in .xlsx format.
+The report is saved in .xlsx format.
 
-## requirements
+## Requirements
 
 - perl
-- cpan modules:     
+- cpan modules:
     - DBI
     - DBD::MariaDB
     - Excel::Grinder
     - Cwd
 
-## how to use
+## How to use
 
-### set up project
+### Set up project
 
-1. copy all files from `sample/` dir to project root
-2. add database credentials to `.env` file in root
+1. Copy all files from `sample/` dir to project root
+2. Add database credentials to `.env` file in root
 
-### generate report
+### Generate report
 
 1. set up ssh tunnel if needed
 2. run `report.pl` to generate report
 
-**syntax and examples:**
+**Syntax and examples:**
 
 ```
 .\report.pl [-month=M -year=Y -prefix=xx]
 ```
 
-all switches are optional. 
+All switches are optional.
 
-by default, the script generates report for the last month using prefix `wp_` 
+By default, the script generates report for the last month using prefix `wp_`.
 
-the command below generates report for august 2021 for site 2 in a multisite WP
+The command below generates report for august 2021 for site 2 in a multisite WP.
 
 ```
 .\report.pl -month=8 -year=2021 -prefix=wp_2_
 ```
 
-## ssh tunneling
+## How it works
 
-**software:**
+**base.sql**
+
+MySQL does not have the `PIVOT` feature I've grown to love in PostgresSQL and MSSQL. This is especially annoying when working with WordPress and WooCommerce, since most data is stored in "unpivoted" tables.
+
+The `base.sql` file (provided under `sample/`) preloads an SQL query with some useful _"shortcuts"_ for pivoting and simplifying queries for WordPress and WooCommerce.
+
+Instead of doing things like this:
+```SQL
+SELECT id
+    ,post_title
+    ,MAX(CASE WHEN meta_key = '_sku'            THEN meta_value ELSE '' END) AS sku
+    ,MAX(CASE WHEN meta_key = '_price'          THEN meta_value ELSE '' END) AS price
+FROM wp_posts
+INNER JOIN wp_postmeta ON post_id = id AND meta_key IN ('_sku', '_price')
+WHERE post_type = 'product'
+GROUP BY post_id
+```
+
+We can do this:
+```SQL
+SELECT id, title, sku, price FROM product
+```
+
+**report.pl**
+
+The `report.pl` builds a query from `base.sql` and each of the queryies under `queries/` in turn and runs them. Each set of results is added as a worksheet to an xlsx file using `Excel::Grinder` and saved under `output/`.
+
+## SSH tunneling
+
+**Software:**
 
 - plink
 - pageant
 
-_installing Putty will also install plink and pageant_
+_Installing Putty will also install plink and pageant_
 
-**preparations:**
+**Preparations:**
 
-1. add server connection to `tunnel.bat` 
+1. add server connection to `tunnel.bat`
 2. generate an RSA key and add it to `.ssh\authorized_keys` on the server
 
-**set up connection:**
+**Set up connection:**
 
 1. run pageant and add private RSA key
 2. run `tunnel.bat` to set up an ssh tunnel to the server
 
-## misc
+## Misc
 
 the Dotenv module on cpan is not used because it does not work on windows

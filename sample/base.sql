@@ -1,6 +1,5 @@
-/*pivoted and simplified table structures: */
 WITH
-postmeta AS (
+productmeta AS (
     SELECT post_id
         ,MAX(CASE WHEN meta_key = '_sku'            THEN meta_value ELSE '' END) AS sku
         ,MAX(CASE WHEN meta_key = '_tax_status'     THEN meta_value ELSE '' END) AS tax_status
@@ -56,17 +55,17 @@ postmeta AS (
 ,product AS (
     SELECT p.id
         ,p.post_title AS title
-        ,postmeta.sku
-        ,postmeta.tax_status
-        ,postmeta.cost
-        ,postmeta.price
+        ,productmeta.sku
+        ,productmeta.tax_status
+        ,productmeta.cost
+        ,productmeta.price
         ,postterms.`name` AS category
-        ,SUM(IFNULL(vm.stock, postmeta.stock)) AS total_stock
+        ,SUM(IFNULL(vm.stock, productmeta.stock)) AS total_stock
     FROM {{prefix}}posts p
-    LEFT JOIN postmeta      ON postmeta.post_id     = p.id
-    LEFT JOIN postterms     ON postterms.object_id  = p.id AND postterms.taxonomy   = 'product_cat'
-    LEFT JOIN {{prefix}}posts v  ON v.post_parent        = p.id AND v.post_type          = 'product_variation'
-    LEFT JOIN postmeta vm   ON vm.post_id           = v.id
+    LEFT JOIN productmeta       ON productmeta.post_id  = p.id
+    LEFT JOIN postterms         ON postterms.object_id  = p.id AND postterms.taxonomy   = 'product_cat'
+    LEFT JOIN {{prefix}}posts v ON v.post_parent        = p.id AND v.post_type          = 'product_variation'
+    LEFT JOIN productmeta vm    ON vm.post_id           = v.id
     WHERE p.post_type = 'product'
     GROUP BY p.id
 )
