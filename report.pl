@@ -13,12 +13,7 @@ use Excel::Grinder;
 
 #custom Dotenv module, since the one on cpan doesn't work on windows
 our %dotenv;
-require qw( .\Dotenv.pm );
-
-#worksheet name => file containing sql query
-my %queries = (
-    'Overview' => 'overview.sql',
-);
+require qw( ./lib/Dotenv.pm );
 
 #optional switches
 our ($month, $year, $prefix);
@@ -42,10 +37,13 @@ BEGIN {
     $month == 0 and $month = 12 and $year--;
 }
 
+#load sql files from /sql
+my @queries = <queries/*.sql>;
+0 < @queries or die "no files found in queries/";
+
 our @data;
 #run queries and add data
-foreach my $key (sort keys %queries){
-    my $file = $queries{$key};
+foreach my $file (@queries){
     my $query = load_file_content($file);
     my $sql = prepare_query($query);
 
@@ -53,14 +51,23 @@ foreach my $key (sort keys %queries){
 }
 
 #generate xlsx file from data
-my $path = cwd; #current working directory
-my $filename = "report-$prefix-$month-$year.xlsx";
+my $path = cwd . "/reports/"; #current working directory
+my @now = localtime;
+my $timestamp = sprintf("%d" . ("%02d" x 5),
+    $now[5]+1900,   #year (starts at 1900)
+    $now[4]+1,      #month (starts at 0)
+    $now[3],        #day
+    $now[2],        #hour
+    $now[1],        #minute
+    $now[0]         #second
+);
+my $filename = "$prefix-$month-$year-$timestamp.xlsx";
 
 my $xlsx = Excel::Grinder->new($path);
 my $file = $xlsx->write_excel(
     'filename' => $filename,
     'headings_in_data' => 1,
-    'worksheet_names' => [ sort keys %queries ],
+    'worksheet_names' => [ map { s|^queries/(\w+)\.sql$|\u$1|r } @queries ],
     'the_data' => [
         @data
     ],

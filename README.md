@@ -15,12 +15,12 @@ the report is saved in .xlsx format.
 
 ## how to use
 
-### first time:
+### set up project
 
-1. duplicate `.env-sample` to `.env`
-2. add database credentials to `.env`
+1. copy all files from `sample/` dir to project root
+2. add database credentials to `.env` file in root
 
-### every time:
+### generate report
 
 1. set up ssh tunnel if needed
 2. run `report.pl` to generate report
@@ -52,9 +52,8 @@ _installing Putty will also install plink and pageant_
 
 **preparations:**
 
-1. duplicate `.tunnel-sample.bat` to `tunnel.bat`
-2. add server connection to `tunnel.bat` 
-3. generate an RSA key and add it to `.ssh\authorized_keys` on the server
+1. add server connection to `tunnel.bat` 
+2. generate an RSA key and add it to `.ssh\authorized_keys` on the server
 
 **set up connection:**
 

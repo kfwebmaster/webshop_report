@@ -1,3 +1,7 @@
+reports/
+queries/
 .env
 tunnel.bat
-*.xlsx
+*.sql
+
+!sample/*
