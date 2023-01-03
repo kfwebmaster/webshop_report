@@ -28,13 +28,11 @@ postmeta AS (
 ,shop_order AS (
     SELECT id 
         ,post_date AS order_date
-        ,CASE WHEN post_type    = 'shop_order_refund' 
-                OR post_status  = 'wc-refunded' 
-        THEN 1 ELSE 0 END AS refund
+        ,CASE WHEN post_type = 'shop_order_refund' THEN 1 ELSE 0 END AS refund
     FROM {{prefix}}posts 
     WHERE 1 = 1
         AND post_type       IN ('shop_order', 'shop_order_refund')
-        AND post_status     IN ('wc-completed', 'wc-processing', 'wc-refunded') 
+        AND post_status     IN ('wc-completed', 'wc-processing', 'wc-refunded')
 )
 ,postterms AS (
     SELECT object_id
