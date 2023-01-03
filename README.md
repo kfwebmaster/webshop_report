@@ -43,30 +43,30 @@ The command below generates report for august 2021 for site 2 in a multisite WP.
 
 ## How it works
 
-**base.sql**
+### base.sql
 
 MySQL does not have the `PIVOT` feature I've grown to love in PostgresSQL and MSSQL. This is especially annoying when working with WordPress and WooCommerce, since most data is stored in "unpivoted" tables.
 
-The `base.sql` file (provided under `sample/`) preloads an SQL query with some useful _"shortcuts"_ for pivoting and simplifying queries for WordPress and WooCommerce.
+The `base.sql` file (provided under `sample/`) preloads an SQL query with some useful _shortcuts_ for pivoting and simplifying queries for WordPress and WooCommerce.
 
-Instead of doing things like this:
+**Instead of this:**
 ```SQL
 SELECT id
-    ,post_title
-    ,MAX(CASE WHEN meta_key = '_sku'            THEN meta_value ELSE '' END) AS sku
-    ,MAX(CASE WHEN meta_key = '_price'          THEN meta_value ELSE '' END) AS price
+    ,post_title                                                         AS title
+    ,MAX(CASE WHEN meta_key = '_sku'    THEN meta_value ELSE '' END)    AS sku
+    ,MAX(CASE WHEN meta_key = '_price'  THEN meta_value ELSE '' END)    AS price
 FROM wp_posts
-INNER JOIN wp_postmeta ON post_id = id AND meta_key IN ('_sku', '_price')
+    LEFT JOIN wp_postmeta ON post_id = id AND meta_key IN ('_sku', '_price')
 WHERE post_type = 'product'
-GROUP BY post_id
+GROUP BY id
 ```
 
-We can do this:
+**We can do this:**
 ```SQL
 SELECT id, title, sku, price FROM product
 ```
 
-**report.pl**
+### report.pl
 
 The `report.pl` builds a query from `base.sql` and each of the queryies under `queries/` in turn and runs them. Each set of results is added as a worksheet to an xlsx file using `Excel::Grinder` and saved under `output/`.
 
