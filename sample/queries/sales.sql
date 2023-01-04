@@ -1,4 +1,3 @@
-/*generate sales report for a month: */
 SELECT
     title                                                       AS `product_title`
     ,sales.sku

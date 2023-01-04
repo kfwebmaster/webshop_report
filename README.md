@@ -4,14 +4,20 @@ This script generates a sales report for a specified month from a WooCommerce we
 
 The report is saved in .xlsx format.
 
-## Requirements
+## Required software
 
 - perl
 - cpan modules:
     - DBI
-    - DBD::MariaDB
     - Excel::Grinder
     - Cwd
+
+## Optional software
+
+- cpan modules
+    - DBD::MariaDB
+- plink
+- pageant
 
 ## How to use
 
@@ -56,7 +62,7 @@ SELECT id
     ,MAX(CASE WHEN meta_key = '_sku'    THEN meta_value ELSE '' END)    AS sku
     ,MAX(CASE WHEN meta_key = '_price'  THEN meta_value ELSE '' END)    AS price
 FROM wp_posts
-    LEFT JOIN wp_postmeta ON post_id = id AND meta_key IN ('_sku', '_price')
+LEFT JOIN wp_postmeta ON post_id = id AND meta_key IN ('_sku', '_price')
 WHERE post_type = 'product'
 GROUP BY id
 ```
@@ -66,9 +72,13 @@ GROUP BY id
 SELECT id, title, sku, price FROM product
 ```
 
+To allow selection of prefix when generating reports, the sql files have `{{prefix}}` in place of `wp_` in all table names. This gets replaced before the queries are run. The same is done with `{{year}}` and `{{month}}`.
+
 ### report.pl
 
-The `report.pl` builds a query from `base.sql` and each of the queryies under `queries/` in turn and runs them. Each set of results is added as a worksheet to an xlsx file using `Excel::Grinder` and saved under `output/`.
+The `report.pl` builds a query from `base.sql` and each of the queries under `queries/` in turn and runs them. Each set of results is added as a worksheet to an xlsx file using `Excel::Grinder` and saves the file under `output/`.
+
+The script relies on `DBI` which does not support multiple statements in a single query. We're assuming the use of `MariaDB` since it is more reliable, even for MySQL servers, but this is not required.
 
 ## SSH tunneling
 

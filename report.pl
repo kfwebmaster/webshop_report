@@ -115,12 +115,9 @@ sub run_query {
     $sth->execute()
         or die "execution failed: $dbh->errstr()";
 
-    #get field names
+    #get field names and add as the first row
     my $fields = $sth->{NAME_lc};
-
     my @data = ();
-
-    #add field names as the first row
     push @data, $fields;
 
     #add values from each row
@@ -130,6 +127,5 @@ sub run_query {
 
     $sth->finish;
     $dbh->disconnect;
-
     return @data;
 }
