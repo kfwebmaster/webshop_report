@@ -85,7 +85,8 @@ sub load_file_content {
     while(my $line = (<$fh>)){
         $content.= $line;
     }
-    close $fh;
+    close $fh 
+        or die "Could not close file $file: $!";
     return $content;
 }
 
