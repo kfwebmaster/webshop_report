@@ -1,25 +1,40 @@
-#! perl -w
+package Dotenv;
+use strict;
+use Carp;
 
-our %dotenv;
+our (@ISA, @EXPORT, @EXPORT_OK);
 
-my $file = '.env';
+require Exporter; @ISA = ( 'Exporter' ); # export/import service
 
-open my $fh, "<", $file;
-while(<$fh>){
-    chomp;
-    m{
-        \A              
-        (?<key>[\w-]+)      #key
-        \s*=\s*             #=
-        (?<q>['"]?)         #optional quotes
-        (?<val>[^'"]+)      #value
-        \k<q>               #same quote character as before
-        \z
-    }xx;
-    
-    die "Dotenv failure: invalid variables in $file\n" 
-        unless defined $+{'key'} and defined $+{'val'};
+@EXPORT = qw( Parse );
+@EXPORT_OK = qw();
 
-    $dotenv{$+{'key'}} = $+{'val'};
+sub Parse {
+    my ($file) = @_;
+    $file or $file = '.env'; # default file
+    my %dotenv;
+    open my $fh, "<", $file
+        or croak __PACKAGE__, ": Could not open $file. $!";
+    while(<$fh>){
+        chomp;
+        m{
+            \A
+            (?<key>[\w-]+)      #key
+            \s*=\s*             #=
+            (?<q>['"]?)         #optional quotes
+            (?<val>[^'"]+)      #value
+            \k<q>               #same quote character as before
+            \z
+        }xx;
+
+        croak __PACKAGE__, ": Could not parse file '$file'"
+            unless defined $+{'key'} and defined $+{'val'};
+
+        $dotenv{$+{'key'}} = $+{'val'};
+    }
+    close $fh
+        or croak __PACKAGE__, ": Could not close $file. $!";
+    return %dotenv;
 }
-close $fh;
+
+1;
