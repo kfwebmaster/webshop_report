@@ -1,16 +1,24 @@
 #! perl -s -w
 
-use strict; 
+use strict;
 use v5.10;
 
 use feature qw( refaliasing declared_refs );
 no warnings qw( experimental::refaliasing experimental::declared_refs );
 
-our ($month, $year, $prefix);   # optional switches
-my $sep = '/';                  # path separator
+our (
+    $month, $year, $prefix,
+    $h => $help,
+    $v => $verbose
+);              # optional switches
+my $sep = '/';  # path separator
 
 BEGIN {
-    my $usage = "Usage: $0 [-month=M -year=Y -prefix=xxx]";
+    my $usage = "Usage: $0 [-month=M -year=Y -prefix=xxx] -h[elp]";
+
+    $h //= $help;
+    $v //= $verbose;
+    $h and warn $usage and exit 0;
 
     # validate switches, if provided
     # avoid compilation error by using warn and exit instead of die
@@ -29,6 +37,8 @@ BEGIN {
     $^O eq 'MSWin32' and $sep = '\\';           # change path separator for windows
 
     push @INC, '.' . $sep . 'lib' . $sep;       # load modules from /lib
+
+    $v and warn "Making report for $month/$year for site $prefix\n";
 }
 
 # load modules
@@ -40,7 +50,7 @@ use Dotenv;         # custom module since the one on CPAN doesnt work on windows
 my %dotenv = Dotenv::Parse; # load dbi credentials from .env
 
 # load list of query files
-my @queries = glob("queries$sep*.sql");
+my @queries = glob "queries$sep*.sql";
 0 < @queries or die "No files found in queries$sep. ";
 
 # run queries and add data
@@ -48,12 +58,16 @@ our @data;
 foreach my $file (@queries){
     my $query = load_file_content($file);
     my $sql = prepare_query($query);
-    push @data, [ run_query($sql) ];
+    my @rows = run_query($sql);
+    $v and warn "Found ", scalar @rows, " rows when running $file\n";
+    push @data, [ @rows ];
 }
 
 # generate sheet names from query filenames
 # queries/sales.sql -> Sales
 my @sheets = map { s|^queries$sep(\w+)\.sql$|\u$1|r } @queries;
+
+$v and warn "Report contains the following sheets: @sheets\n";
 
 # prepare filename for report
 my $path = cwd . $sep . "output" . $sep;
@@ -77,6 +91,9 @@ my $file = $xlsx->write_excel(
     'the_data'          => [ @data ],
 );
 
+$v and warn "Report saved as $filename\n";
+
+
 ####### subroutines #######
 
 sub load_file_content {
@@ -87,7 +104,7 @@ sub load_file_content {
     while(my $line = (<$fh>)){
         $content.= $line;
     }
-    close $fh 
+    close $fh
         or die "Could not close file $file: $!";
     return $content;
 }
