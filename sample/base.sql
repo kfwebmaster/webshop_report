@@ -1,11 +1,11 @@
 WITH
 productmeta AS (
     SELECT post_id
-        ,MAX(CASE WHEN meta_key = '_sku'            THEN meta_value ELSE '' END) AS sku
-        ,MAX(CASE WHEN meta_key = '_tax_status'     THEN meta_value ELSE '' END) AS tax_status
-        ,MAX(CASE WHEN meta_key = '_wc_cog_cost'    THEN meta_value ELSE '' END) AS cost
-        ,MAX(CASE WHEN meta_key = '_price'          THEN meta_value ELSE '' END) AS price
-        ,MAX(CASE WHEN meta_key = '_stock'          THEN meta_value ELSE '' END) AS stock
+        ,MAX(CASE WHEN meta_key = '_sku'            THEN meta_value ELSE NULL END) AS sku
+        ,MAX(CASE WHEN meta_key = '_tax_status'     THEN meta_value ELSE NULL END) AS tax_status
+        ,MAX(CASE WHEN meta_key = '_wc_cog_cost'    THEN meta_value ELSE NULL END) AS cost
+        ,MAX(CASE WHEN meta_key = '_price'          THEN meta_value ELSE NULL END) AS price
+        ,MAX(CASE WHEN meta_key = '_stock'          THEN meta_value ELSE NULL END) AS stock
     FROM {{prefix}}postmeta
     WHERE meta_key IN ('_sku', '_tax_status', '_wc_cog_cost', '_price', '_stock')
     GROUP BY post_id
@@ -13,16 +13,31 @@ productmeta AS (
 ,order_items AS (
     SELECT oi.order_id
         ,oi.order_item_id
-        ,MAX(CASE WHEN oim.meta_key = '_qty'        THEN ABS(oim.meta_value) ELSE 0 END)    AS quantity
-        ,MAX(CASE WHEN oim.meta_key = '_line_total' THEN ABS(oim.meta_value) ELSE 0 END)    AS line_total
-        ,MAX(CASE WHEN oim.meta_key = '_line_tax'   THEN ABS(oim.meta_value) ELSE 0 END)    AS line_tax
-        ,MAX(CASE WHEN oim.meta_key = '_product_id' THEN oim.meta_value ELSE '' END)        AS product_id
+        ,MAX(CASE WHEN oim.meta_key = '_qty'        THEN ABS(oim.meta_value) ELSE NULL END)    AS quantity
+        ,MAX(CASE WHEN oim.meta_key = '_line_total' THEN ABS(oim.meta_value) ELSE NULL END)    AS line_total
+        ,MAX(CASE WHEN oim.meta_key = '_line_tax'   THEN ABS(oim.meta_value) ELSE NULL END)    AS line_tax
+        ,MAX(CASE WHEN oim.meta_key = '_product_id' THEN oim.meta_value ELSE NULL END)        AS product_id
     FROM {{prefix}}woocommerce_order_items oi
     INNER JOIN {{prefix}}woocommerce_order_itemmeta oim ON oi.order_item_id = oim.order_item_id
     WHERE 1 = 1
         AND meta_key IN ('_qty', '_line_total', '_line_tax', '_product_id')
         AND oi.order_item_type = 'line_item'
     GROUP BY order_item_id
+)
+,order_taxes AS (
+    SELECT oi.order_id
+        ,oi.order_item_id
+        ,MAX(CASE WHEN oim.meta_key = 'label'               THEN oim.meta_value ELSE NULL END) AS label
+        ,MAX(CASE WHEN oim.meta_key = 'rate_id'             THEN oim.meta_value ELSE NULL END)  AS rate_id
+        ,MAX(CASE WHEN oim.meta_key = 'rate_percent'        THEN oim.meta_value ELSE NULL END)  AS rate_percent
+        ,MAX(CASE WHEN oim.meta_key = 'shipping_tax_amount' THEN oim.meta_value ELSE NULL END)  AS shipping_tax_amount
+        ,MAX(CASE WHEN oim.meta_key = 'tax_amount'          THEN oim.meta_value ELSE NULL END)  AS tax_amount
+    FROM {{prefix}}woocommerce_order_items oi
+    INNER JOIN {{prefix}}woocommerce_order_itemmeta oim ON oi.order_item_id = oim.order_item_id
+    WHERE 1 = 1
+        AND meta_key IN ('label', 'rate_id', 'rate_percent', 'shipping_tax_amount', 'tax_amount')
+        AND oi.order_item_type = 'tax'
+    GROUP BY oim.order_item_id
 )
 ,order_lines AS (
     SELECT order_id
@@ -38,7 +53,9 @@ productmeta AS (
 ,shop_order AS (
     SELECT id
         ,post_date AS order_date
-        ,CASE WHEN post_type = 'shop_order_refund' THEN 1 ELSE 0 END AS refund
+        ,CASE WHEN post_type = 'shop_order_refund'
+                #OR post_status = 'wc-refunded'
+            THEN 1 ELSE 0 END AS refund
     FROM {{prefix}}posts
     WHERE 1 = 1
         AND post_type       IN ('shop_order', 'shop_order_refund')
