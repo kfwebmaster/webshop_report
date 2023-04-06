@@ -1,20 +1,17 @@
-#! perl -s -w
-
+#!/usr/bin/perl -s -w
 use strict;
-use v5.10;
+use File::Basename qw<basename>;
 
-use feature qw( refaliasing declared_refs );
-no warnings qw( experimental::refaliasing experimental::declared_refs );
-
-our (
-    $month, $year, $prefix,
-    $h => $help,
-    $v => $verbose
+our
+(   $month, $year, $prefix
+,   $h => $help
+,   $v => $verbose
 );              # optional switches
 my $sep = '/';  # path separator
 
-BEGIN {
-    my $usage = "Usage: $0 [-month=M -year=Y -prefix=xxx] -h[elp]";
+BEGIN
+{   my $script = basename($0);
+    my $usage = "Usage: $script [-month=M -year=Y -prefix=xxx -h[elp] ]\n";
 
     $h //= $help;
     $v //= $verbose;
@@ -42,7 +39,7 @@ BEGIN {
 }
 
 # load modules
-use Cwd qw( cwd );
+use Cwd qw<cwd>;
 use DBI;
 use Excel::Grinder;
 use Dotenv;         # custom module since the one on CPAN doesnt work on windows
@@ -54,13 +51,13 @@ my @queries = glob "queries$sep*.sql";
 0 < @queries or die "No files found in queries$sep. ";
 
 # run queries and add data
-our @data;
+my @data;
 foreach my $file (@queries){
     my $query = load_file_content($file);
-    my $sql = prepare_query($query);
-    my @rows = run_query($sql);
+    my $sql   = prepare_query($query);
+    my @rows  = run_query($sql);
     $v and warn "Found ", scalar @rows, " rows when running $file\n";
-    push @data, [ @rows ];
+    push @data, \@rows;
 }
 
 # generate sheet names from query filenames
@@ -72,14 +69,14 @@ $v and warn "Report contains the following sheets: @sheets\n";
 # prepare filename for report
 my $path = cwd . $sep . "output" . $sep;
 my @now = localtime;
-my $timestamp = sprintf("%d" . ("%02d" x 5),
-    $now[5]+1900,   # year (starts at 1900)
-    $now[4]+1,      # month (starts at 0)
-    $now[3],        # day
-    $now[2],        # hour
-    $now[1],        # minute
-    $now[0]         # second
-);
+my $timestamp = sprintf(   "%d" . ("%02d" x 5),
+                       ,   $now[5]+1900     # year (starts at 1900)
+                       ,   $now[4]+1        # month (starts at 0)
+                       ,   $now[3]          # day
+                       ,   $now[2]          # hour
+                       ,   $now[1]          # minute
+                       ,   $now[0]          # second
+                       );
 my $filename = "$prefix-$month-$year-$timestamp.xlsx";
 
 # generate xlsx file from data
@@ -87,8 +84,8 @@ my $xlsx = Excel::Grinder->new($path);
 my $file = $xlsx->write_excel(
     'filename'          => $filename,
     'headings_in_data'  => 1,
-    'worksheet_names'   => [ @sheets ],
-    'the_data'          => [ @data ],
+    'worksheet_names'   => \@sheets,
+    'the_data'          => \@data,
 );
 
 $v and warn "Report saved as $filename\n";
@@ -96,32 +93,28 @@ $v and warn "Report saved as $filename\n";
 
 ####### subroutines #######
 
-sub load_file_content {
-    my ($file) = @_;
-    my $content;
-    open my $fh, '<', $file
-        or die "Could not open file $file: $!";
-    while(my $line = (<$fh>)){
-        $content.= $line;
-    }
-    close $fh
-        or die "Could not close file $file: $!";
-    return $content;
+sub load_file_content
+{   my ($file) = @_;
+    local $/ = undef;
+    open my $fh, '<', $file or die "Could not open file $file: $!";
+    my $content = <$fh>;
 }
 
-sub prepare_query {
-    state $base_sql = load_file_content('base.sql');
-    my ($query) = @_;
+{   my $base_sql;
+    sub prepare_query {
+        $base_sql //= load_file_content('base.sql');
+        my ($query) = @_;
 
-    my $sql = "$base_sql\n$query";
+        my $sql = "$base_sql\n$query";
 
-    # insert month, year, and prefix into query
-    # \Q turns off metachars, so that '{}' can be used without escaping
-    $sql =~ s/\Q{{month}}/$month/g;
-    $sql =~ s/\Q{{year}}/$year/g;
-    $sql =~ s/\Q{{prefix}}/$prefix/g;
+        # insert month, year, and prefix into query
+        # \Q turns off metachars, so that '{}' can be used without escaping
+        $sql =~ s/\Q{{month}}/$month/g;
+        $sql =~ s/\Q{{year}}/$year/g;
+        $sql =~ s/\Q{{prefix}}/$prefix/g;
 
-    return $sql;
+        return $sql;
+    }
 }
 
 sub run_query {
@@ -142,7 +135,7 @@ sub run_query {
 
     # add values from each row
     while(my $row = $sth->fetchrow_hashref()){
-        push @data, [ map { $row->{$_} } $fields->@* ];
+        push @data, [ map { $row->{$_} // '' } $fields->@* ];
     }
 
     $sth->finish;
