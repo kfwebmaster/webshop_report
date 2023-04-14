@@ -45,6 +45,10 @@ use Excel::Grinder;
 use Dotenv;         # custom module since the one on CPAN doesnt work on windows
 
 my %dotenv = Dotenv::Parse; # load dbi credentials from .env
+die "Missing DB configuration in .env file\n"
+    unless defined $dotenv{'DATA_SOURCE'}
+        && defined $dotenv{'DB_USERNAME'}
+        && defined $dotenv{'DB_PASSWORD'};
 
 # load list of query files
 my @queries = glob "queries$sep*.sql";
